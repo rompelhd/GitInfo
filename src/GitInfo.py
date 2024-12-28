@@ -2,6 +2,17 @@ import os
 import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
+
+# Banner
+print("""
+  GGGG  iii tt    IIIII          fff
+ GG  GG     tt     III  nn nnn  ff    oooo
+GG      iii tttt   III  nnn  nn ffff oo  oo
+GG   GG iii tt     III  nn   nn ff   oo  oo
+ GGGGGG iii  tttt IIIII nn   nn ff    oooo
+                                by rompelhd
+""")
 
 def clone_repository(git_url):
     try:
@@ -12,143 +23,100 @@ def clone_repository(git_url):
         print(f"Error cloning repository: {e}")
         return None
 
-def count_lines_in_file(file_path):
+def count_lines_and_comments_in_file(file_path, comment_syntax):
+    lines = 0
+    comments = 0
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
-            return sum(1 for _ in file)
+            for line in file:
+                lines += 1
+                stripped_line = line.strip()
+                if comment_syntax and stripped_line.startswith(comment_syntax):
+                    comments += 1
     except Exception:
-        return 0
+        pass
+    return lines, comments
 
-def count_lines_in_repo(repo_path, extensions=None):
-    if extensions is None:
-        extensions = [
-        # Python
-        ".py", ".pyc", ".pyo", ".pyw", ".pyx", ".pxd", ".pxi",
+def count_lines_and_comments_by_language(repo_path):
+    extensions = {
+        **dict.fromkeys([".py", ".pyc", ".pyo", ".pyw", ".pyx", ".pxd", ".pxi"], ("Python", "#")),
+        **dict.fromkeys([".js", ".mjs", ".cjs"], ("JavaScript", "//")),
+        **dict.fromkeys([".ts", ".tsx"], ("TypeScript", "//")),
+        **dict.fromkeys([".java", ".class", ".jar", ".jad"], ("Java", "//")),
+        **dict.fromkeys([".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hh", ".hxx"], ("C/C++", "//")),
+        **dict.fromkeys([".cs"], ("C#", "//")),
+        **dict.fromkeys([".html", ".htm", ".xhtml", ".jhtml"], ("HTML", "<!--")),
+        **dict.fromkeys([".css", ".scss", ".sass", ".less"], ("CSS", "/*")),
+        **dict.fromkeys([".md", ".markdown", ".mkd"], ("Markdown", None)),
+        **dict.fromkeys([".php", ".phtml", ".php3", ".php4", ".php5", ".php7", ".phps"], ("PHP", "//")),
+        **dict.fromkeys([".rb", ".erb", ".rake"], ("Ruby", "#")),
+        **dict.fromkeys([".pl", ".pm", ".pod", ".t", ".psgi"], ("Perl", "#")),
+        **dict.fromkeys([".sh", ".bash", ".zsh", ".ksh", ".csh", ".tcsh"], ("Shell", "#")),
+        **dict.fromkeys([".ps1", ".psm1", ".psd1"], ("PowerShell", "#")),
+        **dict.fromkeys([".go"], ("Go", "//")),
+        **dict.fromkeys([".rs"], ("Rust", "//")),
+        **dict.fromkeys([".kt", ".kts"], ("Kotlin", "//")),
+        **dict.fromkeys([".swift"], ("Swift", "//")),
+        **dict.fromkeys([".dart"], ("Dart", "//")),
+        **dict.fromkeys([".sql"], ("SQL", "--")),
+        **dict.fromkeys([".yml", ".yaml"], ("YAML", "#")),
+        **dict.fromkeys([".json"], ("JSON", None)),
+        **dict.fromkeys([".xml", ".xsl", ".xsd", ".kml"], ("XML", "<!--")),
+        **dict.fromkeys([".lua"], ("Lua", "--")),
+        **dict.fromkeys([".r", ".rdata", ".rds"], ("R", "#")),
+        **dict.fromkeys([".m", ".mat", ".fig"], ("MATLAB", "%")),
+        **dict.fromkeys([".hs", ".lhs"], ("Haskell", "--")),
+        **dict.fromkeys([".scala", ".sc"], ("Scala", "//")),
+        **dict.fromkeys([".lisp", ".lsp", ".cl"], ("Lisp", ";")),
+        **dict.fromkeys([".scm"], ("Scheme", ";")),
+        **dict.fromkeys([".pro", ".p"], ("Prolog", "%")),
+        **dict.fromkeys([".asm", ".s", ".a"], ("Assembly", ";")),
+        **dict.fromkeys([".f", ".for", ".f90", ".f95"], ("Fortran", "C")),
+        **dict.fromkeys([".cob", ".cbl", ".cpy"], ("COBOL", "*")),
+        **dict.fromkeys([".pas", ".pp", ".inc"], ("Pascal", "//")),
+        **dict.fromkeys([".groovy", ".gvy", ".gy", ".gsh"], ("Groovy", "//")),
+        **dict.fromkeys([".jl"], ("Julia", "#")),
+        **dict.fromkeys([".cr"], ("Crystal", "#")),
+        **dict.fromkeys([".bat", ".cmd"], ("Batch", "REM")),
+        **dict.fromkeys([".awk", ".sed", ".tcl", ".vbs", ".jscript", ".wsf", ".wsh"], ("Scripting", "#")),
+        **dict.fromkeys([".make", ".mk", ".cmake", ".ini", ".cfg", ".conf"], ("Configuration", "#")),
+        **dict.fromkeys([".ex", ".exs"], ("Elixir", "#")),
+        **dict.fromkeys([".ml", ".mli"], ("OCaml", "(*")),
+        **dict.fromkeys([".adb", ".ads"], ("Ada", "--"))
+    }
 
-    	# JavaScript
-    	".js", ".mjs", ".cjs",
+    language_stats = defaultdict(lambda: {"lines": 0, "comments": 0})
 
-    	# TypeScript
-    	".ts", ".tsx",
-
-    	# Java
-    	".java", ".class", ".jar", ".jad",
-
-    	# C / C++
-    	".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hh", ".hxx",
-
-    	# C#
-    	".cs",
-
-    	# HTML / CSS
-    	".html", ".htm", ".xhtml", ".jhtml",
-    	".css", ".scss", ".sass", ".less",
-
-    	# Markdown
-    	".md", ".markdown", ".mkd",
-
-    	# PHP
-    	".php", ".phtml", ".php3", ".php4", ".php5", ".php7", ".phps",
-
-    	# Ruby
-    	".rb", ".erb", ".rake",
-
-    	# Perl
-    	".pl", ".pm", ".pod", ".t", ".psgi",
-
-    	# Bash / Shell
-    	".sh", ".bash", ".zsh", ".ksh", ".csh", ".tcsh",
-
-    	# PowerShell
-    	".ps1", ".psm1", ".psd1",
-
-    	# Go
-    	".go",
-
-    	# Rust
-    	".rs",
-
-    	# Kotlin
-    	".kt", ".kts",
-
-    	# Swift
-    	".swift",
-
-    	# Dart
-    	".dart",
-
-    	# SQL
-    	".sql",
-
-    	# YAML / JSON
-    	".yml", ".yaml", ".json",
-
-    	# XML
-    	".xml", ".xsl", ".xsd", ".kml",
-
-    	# Lua
-    	".lua",
-
-    	# R
-    	".r", ".rdata", ".rds",
-
-    	# MATLAB
-    	".m", ".mat", ".fig",
-
-    	# Haskell
-    	".hs", ".lhs",
-
-    	# Scala
-    	".scala", ".sc",
-
-    	# Lisp / Scheme
-    	".lisp", ".lsp", ".cl", ".scm",
-
-    	# Prolog
-    	".pl", ".pro", ".p",
-
-    	# Assembly
-    	".asm", ".s", ".a",
-
-    	# Fortran
-    	".f", ".for", ".f90", ".f95",
-
-    	# COBOL
-    	".cob", ".cbl", ".cpy",
-
-    	# Pascal
-    	".pas", ".pp", ".inc",
-
-    	# Groovy
-    	".groovy", ".gvy", ".gy", ".gsh",
-
-    	# Julia
-    	".jl",
-
-    	# Crystal
-    	".cr",
-
-    	# Scripting
-    	".bat", ".cmd", ".awk", ".sed", ".tcl", ".vbs", ".jscript", ".wsf", ".wsh",
-
-    	# Configuration
-    	".make", ".mk", ".cmake", ".ini", ".cfg", ".conf",
-
-    	".ex", ".exs",  # Elixir
-    	".ml", ".mli",  # OCaml
-    	".adb", ".ads",  # Ada
-	]
-
-    total_lines = 0
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
         for root, _, files in os.walk(repo_path):
             for file in files:
-                if any(file.endswith(ext) for ext in extensions):
+                ext = os.path.splitext(file)[1]
+                if ext in extensions:
+                    lang, comment_syntax = extensions[ext]
                     file_path = os.path.join(root, file)
-                    futures.append(executor.submit(count_lines_in_file, file_path))
-        total_lines = sum(f.result() for f in futures)
-    return total_lines
+                    futures.append((executor.submit(count_lines_and_comments_in_file, file_path, comment_syntax), lang))
+
+        for future, lang in futures:
+            lines, comments = future.result()
+            language_stats[lang]["lines"] += lines
+            language_stats[lang]["comments"] += comments
+
+    return language_stats
+
+def display_language_statistics(language_stats):
+    total_lines = sum(stats["lines"] for stats in language_stats.values())
+    if total_lines == 0:
+        print("No code lines detected.")
+        return
+
+    print("\nLanguage Usage:")
+    for lang, stats in sorted(language_stats.items(), key=lambda x: x[1]["lines"], reverse=True):
+        lines = stats["lines"]
+        comments = stats["comments"]
+        percentage = (lines / total_lines) * 100
+        print(f"{lang}: {lines} lines, {comments} comments ({percentage:.2f}%)")
+    print(f"\nTotal lines of code: {total_lines}")
 
 def main():
     import sys
@@ -164,10 +132,9 @@ def main():
         if temp_dir is None:
             return
 
-        print("Counting lines of code")
-        total_lines = count_lines_in_repo(temp_dir.name)
-        print(f"\nRepository: {git_url}")
-        print(f"Lines of code: {total_lines}")
+        print("Counting lines of code, analyzing languages, and counting comments...")
+        language_stats = count_lines_and_comments_by_language(temp_dir.name)
+        display_language_statistics(language_stats)
         temp_dir.cleanup()
     except Exception as e:
         print(f"Error: {e}")
