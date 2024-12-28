@@ -4,14 +4,24 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
+# Colors
+GREEN = "\033[1;32m"
+END = "\033[0m"
+RED = "\033[1;31m"
+BLUE = "\033[1;34m"
+YELLOW = "\033[1;33m"
+PURPLE = "\033[1;35m"
+TURQUOISE = "\033[1;36m"
+GRAY = "\033[1;37m"
+
 # Banner
-print("""
-  GGGG  iii tt    IIIII          fff
+print(f"""
+{BLUE}  GGGG  iii tt    IIIII          fff
  GG  GG     tt     III  nn nnn  ff    oooo
 GG      iii tttt   III  nnn  nn ffff oo  oo
 GG   GG iii tt     III  nn   nn ff   oo  oo
  GGGGGG iii  tttt IIIII nn   nn ff    oooo
-                                by rompelhd
+                                by rompelhd {END}
 """)
 
 def clone_repository(git_url):
@@ -20,7 +30,7 @@ def clone_repository(git_url):
         subprocess.run(["git", "clone", "--depth", "1", git_url, temp_dir.name], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return temp_dir
     except subprocess.CalledProcessError as e:
-        print(f"Error cloning repository: {e}")
+        print(f"{RED}Error cloning repository: {e}{END}")
         return None
 
 def count_lines_and_comments_in_file(file_path, comment_syntax):
@@ -107,16 +117,16 @@ def count_lines_and_comments_by_language(repo_path):
 def display_language_statistics(language_stats):
     total_lines = sum(stats["lines"] for stats in language_stats.values())
     if total_lines == 0:
-        print("No code lines detected.")
+        print(f"{RED}No code lines detected.{END}")
         return
 
-    print("\nLanguage Usage:")
+    print(f"{YELLOW}\nLanguage Usage:{END}")
     for lang, stats in sorted(language_stats.items(), key=lambda x: x[1]["lines"], reverse=True):
         lines = stats["lines"]
         comments = stats["comments"]
         percentage = (lines / total_lines) * 100
-        print(f"{lang}: {lines} lines, {comments} comments ({percentage:.2f}%)")
-    print(f"\nTotal lines of code: {total_lines}")
+        print(f"{GREEN}{lang}{END}: {lines} lines, {comments} comments ({percentage:.2f}%)")
+    print(f"{TURQUOISE}\nTotal lines of code: {total_lines}{END}")
 
 def main():
     import sys
@@ -124,20 +134,20 @@ def main():
     if len(sys.argv) > 1:
         git_url = sys.argv[1]
     else:
-        git_url = input("URL Repo GitHub: ")
+        git_url = input(f"{PURPLE}URL Repo GitHub: {END}")
 
     try:
-        print("Cloning the repository, this may take a while...")
+        print(f"{GRAY}Cloning the repository, this may take a while...{END}")
         temp_dir = clone_repository(git_url)
         if temp_dir is None:
             return
 
-        print("Counting lines of code, analyzing languages, and counting comments...")
+        print(f"{GRAY}Counting lines of code, analyzing languages, and counting comments...{END}")
         language_stats = count_lines_and_comments_by_language(temp_dir.name)
         display_language_statistics(language_stats)
         temp_dir.cleanup()
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"{RED}Error: {e}{END}")
 
 if __name__ == "__main__":
     main()
