@@ -33,6 +33,27 @@ def clone_repository(git_url):
         print(f"{RED}Error cloning repository: {e}{END}")
         return None
 
+def get_directory_size(start_path):
+    total_size = 0
+    for dirpath, _, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            try:
+                total_size += os.path.getsize(fp)
+            except FileNotFoundError:
+                pass  # Ignore missing files
+    return total_size
+
+def format_size(size_in_bytes):
+    if size_in_bytes < 1024:
+        return f"{size_in_bytes} B"
+    elif size_in_bytes < 1024**2:
+        return f"{size_in_bytes / 1024:.2f} KB"
+    elif size_in_bytes < 1024**3:
+        return f"{size_in_bytes / 1024**2:.2f} MB"
+    else:
+        return f"{size_in_bytes / 1024**3:.2f} GB"
+
 def count_lines_and_comments_in_file(file_path, comment_syntax):
     lines = 0
     comments = 0
@@ -142,9 +163,15 @@ def main():
         if temp_dir is None:
             return
 
+        repo_path = temp_dir.name
         print(f"{GRAY}Counting lines of code, analyzing languages, and counting comments...{END}")
-        language_stats = count_lines_and_comments_by_language(temp_dir.name)
+        language_stats = count_lines_and_comments_by_language(repo_path)
         display_language_statistics(language_stats)
+
+        print(f"{GRAY}\nCalculating repository size...{END}")
+        repo_size = get_directory_size(repo_path)
+        print(f"{YELLOW}Repository size: {format_size(repo_size)}{END}")
+
         temp_dir.cleanup()
     except Exception as e:
         print(f"{RED}Error: {e}{END}")
