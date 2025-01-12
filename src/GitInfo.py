@@ -28,6 +28,12 @@ def clone_repository(git_url):
     try:
         temp_dir = tempfile.TemporaryDirectory()
         subprocess.run(["git", "clone", "--depth", "1", git_url, temp_dir.name], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        for root, _, files in os.walk(temp_dir.name):
+            for file in files:
+                file_path = os.path.join(root, file)
+                os.chmod(file_path, 0o644)
+
         return temp_dir
     except subprocess.CalledProcessError as e:
         print(f"{RED}Error cloning repository: {e}{END}")
@@ -41,7 +47,7 @@ def get_directory_size(start_path):
             try:
                 total_size += os.path.getsize(fp)
             except FileNotFoundError:
-                pass  # Ignore missing files
+                pass
     return total_size
 
 def format_size(size_in_bytes):
