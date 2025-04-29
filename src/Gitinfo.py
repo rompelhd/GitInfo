@@ -1,3 +1,4 @@
+import sys
 import os
 import subprocess
 import tempfile
@@ -156,7 +157,6 @@ def display_language_statistics(language_stats):
     print(f"{TURQUOISE}\nTotal lines of code: {total_lines}{END}")
 
 def main():
-    import sys
 
     if len(sys.argv) > 1:
         git_url = sys.argv[1]
