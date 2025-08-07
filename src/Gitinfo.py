@@ -1,9 +1,11 @@
 import sys
-import os
-import subprocess
+import os                                                                     import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
+import argparse
+from pathlib import Path
+import contextlib
 
 # Colors
 GREEN = "\033[1;32m"
@@ -14,13 +16,11 @@ YELLOW = "\033[1;33m"
 PURPLE = "\033[1;35m"
 TURQUOISE = "\033[1;36m"
 GRAY = "\033[1;37m"
-
-# Banner
+                                                                              # Banner
 print(f"""
 {BLUE}  GGGG  iii tt    IIIII          fff
  GG  GG     tt     III  nn nnn  ff    oooo
-GG      iii tttt   III  nnn  nn ffff oo  oo
-GG   GG iii tt     III  nn   nn ff   oo  oo
+GG      iii tttt   III  nnn  nn ffff oo  oo                                   GG   GG iii tt     III  nn   nn ff   oo  oo
  GGGGGG iii  tttt IIIII nn   nn ff    oooo
                                 by rompelhd {END}
 """)
@@ -31,10 +31,8 @@ def clone_repository(git_url):
         subprocess.run(["git", "clone", "--depth", "1", git_url, temp_dir.name], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         for root, _, files in os.walk(temp_dir.name):
-            for file in files:
-                file_path = os.path.join(root, file)
-                os.chmod(file_path, 0o644)
-
+            for file in files:                                                                file_path = os.path.join(root, file)
+                os.chmod(file_path, 0o644)                                    
         return temp_dir
     except subprocess.CalledProcessError as e:
         print(f"{RED}Error cloning repository: {e}{END}")
@@ -156,20 +154,46 @@ def display_language_statistics(language_stats):
         print(f"{GREEN}{lang}{END}: {lines} lines, {comments} comments ({percentage:.2f}%)")
     print(f"{TURQUOISE}\nTotal lines of code: {total_lines}{END}")
 
-def main():
+def evaluate_code_quality(language_stats):
+    total_lines = sum(stats["lines"] for stats in language_stats.values())
+    total_comments = sum(stats["comments"] for stats in language_stats.values())
 
-    if len(sys.argv) > 1:
-        git_url = sys.argv[1]
+    if total_lines == 0:
+        return "Needs Improvement: No code lines detected."
+
+    comment_ratio = total_comments / total_lines if total_lines > 0 else 0
+
+    if total_lines > 1000 and comment_ratio > 0.2:
+        return "Excellent: Large amount of code with good comments."
+    elif total_lines > 500 and comment_ratio > 0.1:
+        return "Good: Decent amount of code with adequate comments."
+    elif total_lines > 100 and comment_ratio > 0.05:
+        return "Fair: Acceptable code but could benefit from more comments."
     else:
-        git_url = input(f"{PURPLE}URL Repo GitHub: {END}")
+        return "Needs Improvement: Low code volume or few comments."
 
-    try:
+def parse_args():
+    parser = argparse.ArgumentParser(description="Analyze code statistics in a Git repository.")
+    parser.add_argument("source", help="Git repository URL or local path if --local is used")
+    parser.add_argument("-l", "--local", action="store_true", help="Analyze a local repository instead of cloning a remote one")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    if args.local:
+        repo_path = Path(args.source).resolve()
+        if not repo_path.is_dir():
+            print(f"{RED}The path {args.source} is not a valid directory.{END}")
+            return
+    else:
         print(f"{GRAY}Cloning the repository, this may take a while...{END}")
-        temp_dir = clone_repository(git_url)
+        temp_dir = clone_repository(args.source)
         if temp_dir is None:
             return
-
         repo_path = temp_dir.name
+
+    try:
         print(f"{GRAY}Counting lines of code, analyzing languages, and counting comments...{END}")
         language_stats = count_lines_and_comments_by_language(repo_path)
         display_language_statistics(language_stats)
@@ -177,10 +201,14 @@ def main():
         print(f"{GRAY}\nCalculating repository size...{END}")
         repo_size = get_directory_size(repo_path)
         print(f"{YELLOW}Repository size: {format_size(repo_size)}{END}")
+        print(f"{YELLOW}Code quality evaluation: {evaluate_code_quality(language_stats)}{END}")
 
-        temp_dir.cleanup()
+        if not args.local:
+            temp_dir.cleanup()
     except Exception as e:
         print(f"{RED}Error: {e}{END}")
+        if not args.local and 'temp_dir' in locals():
+            temp_dir.cleanup()
 
 if __name__ == "__main__":
     main()
