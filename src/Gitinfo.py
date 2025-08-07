@@ -1,5 +1,6 @@
 import sys
-import os                                                                     import subprocess
+import os                                                                     
+import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
