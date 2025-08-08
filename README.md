@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="" alt="GitInfo Logo">
+    <img src="https://cdn.discordapp.com/attachments/783810268760768552/1403171315657080882/IMG_20250808_021927.jpg?ex=6896949f&is=6895431f&hm=d5b5c1315e088d8b2ccd6a19cb3d6e51325424a60e3a2f6887645ddbc0252226" width="200" alt="GitInfo Logo">
 </p>
 
 <table align="center">
