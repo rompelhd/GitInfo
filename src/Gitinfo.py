@@ -17,11 +17,13 @@ YELLOW = "\033[1;33m"
 PURPLE = "\033[1;35m"
 TURQUOISE = "\033[1;36m"
 GRAY = "\033[1;37m"
-                                                                              # Banner
+                                                                              
+# Banner
 print(f"""
 {BLUE}  GGGG  iii tt    IIIII          fff
  GG  GG     tt     III  nn nnn  ff    oooo
-GG      iii tttt   III  nnn  nn ffff oo  oo                                   GG   GG iii tt     III  nn   nn ff   oo  oo
+GG      iii tttt   III  nnn  nn ffff oo  oo                                   
+GG   GG iii tt     III  nn   nn ff   oo  oo
  GGGGGG iii  tttt IIIII nn   nn ff    oooo
                                 by rompelhd {END}
 """)
